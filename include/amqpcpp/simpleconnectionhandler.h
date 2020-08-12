@@ -12,7 +12,8 @@ namespace AMQP {
 class SimpleConnectionHandler : public ConnectionHandler
 {
 public:
-    SimpleConnectionHandler();
+    explicit SimpleConnectionHandler();
+    explicit SimpleConnectionHandler( SimplePoller * poller );
 
     void connect( std::string address, uint16_t port );
 

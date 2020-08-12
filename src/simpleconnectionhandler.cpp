@@ -18,6 +18,12 @@ SimpleConnectionHandler::SimpleConnectionHandler()
     };
 }
 //=======================================================================================
+SimpleConnectionHandler::SimpleConnectionHandler( SimplePoller *poller )
+    : SimpleConnectionHandler()
+{
+    _socket.set_poller( poller );
+}
+//=======================================================================================
 void SimpleConnectionHandler::connect(std::string address, uint16_t port)
 {
     _socket.connect( address, port );

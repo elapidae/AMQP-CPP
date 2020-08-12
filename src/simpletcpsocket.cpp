@@ -341,7 +341,7 @@ void SimpleTcpSocket::set_poller( SimplePoller * poller )
 
     _p->poller = poller;
 
-    if ( is_connected() )
+    if ( is_connected() && poller )
         poller->add_read( fd(), _p.get() );
 }
 //=======================================================================================

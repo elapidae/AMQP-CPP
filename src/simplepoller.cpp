@@ -24,6 +24,7 @@
     #include <string.h>
 #endif
 #if FOR_POLLER_WE_SHOULD_USE_WINDOWS
+    #include <winsock2.h>
 #endif
 
 using namespace AMQP;
@@ -65,13 +66,14 @@ int SimplePoller::_pimpl::fill_sets_and_calc_nfds( fd_set * read_set,
                                                    fd_set * write_set,
                                                    fd_set * except_set )
 {
+    using sock_type = decltype( read_set->fd_array[0] );
     FD_ZERO( read_set   );
     FD_ZERO( write_set  );
     FD_ZERO( except_set );
 
-    for ( auto & fd: read_fds   )   FD_SET( fd.first, read_set   );
-    for ( auto & fd: write_fds  )   FD_SET( fd.first, write_set  );
-    for ( auto & fd: except_fds )   FD_SET( fd.first, except_set );
+    for ( auto & fd: read_fds   )   FD_SET( sock_type(fd.first), read_set   );
+    for ( auto & fd: write_fds  )   FD_SET( sock_type(fd.first), write_set  );
+    for ( auto & fd: except_fds )   FD_SET( sock_type(fd.first), except_set );
 
     //  nfds -- strange var, see [1].
     int nfds = 0;
