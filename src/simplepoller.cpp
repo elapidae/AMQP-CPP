@@ -1,30 +1,33 @@
-#include "amqpcpp/simplepoller.h"
+#include "includes.h"
 
 #include <stdexcept>
 #include <map>
 #include <vector>
-#include <features.h>
-#ifdef _POSIX_C_SOURCE
-    #define FOR_POLLER_WE_SHOULD_USE_LINUX
+
+#if (defined __WIN32) or (defined __WIN64)
+    #define FOR_POLLER_WE_SHOULD_USE_WINDOWS 1
+    #define FOR_POLLER_WE_SHOULD_USE_LINUX   0
+#else
+    #define FOR_POLLER_WE_SHOULD_USE_WINDOWS 0
+    #define FOR_POLLER_WE_SHOULD_USE_LINUX   1
 #endif
 
 
-#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
+#if FOR_POLLER_WE_SHOULD_USE_LINUX
     //  https://man7.org/linux/man-pages/man2/select.2.html
     #include <sys/select.h>
 
     //  https://man7.org/linux/man-pages/man3/errno.3.html
     #include <errno.h>
-    #include <string.h> //  for ::strerror_r function
-#else   //  Windows includes
 
+    //  for ::strerror_r function
+    #include <string.h>
+#endif
+#if FOR_POLLER_WE_SHOULD_USE_WINDOWS
 #endif
 
 using namespace AMQP;
 
-#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
-#else   //  Windows includes
-#endif
 
 //=======================================================================================
 class SimplePoller::_pimpl
@@ -104,7 +107,7 @@ int SimplePoller::_pimpl::do_select( fd_set *read_set,
 
         char err_buf[256];
         err_buf[0] = 0;
-        ::strerror_r( errno, err_buf, sizeof(err_buf) );
+        ::strerror_s( err_buf, sizeof(err_buf), errno );
 
         auto msg = std::string("SimplePoller::poll() select error: '") + err_buf + "'";
         throw std::runtime_error( msg );

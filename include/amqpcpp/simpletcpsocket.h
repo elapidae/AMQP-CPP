@@ -21,6 +21,8 @@ public:
     explicit SimpleTcpSocket( SimplePoller * poller );
     virtual ~SimpleTcpSocket();
 
+    void set_poller( SimplePoller * poller ); // Can be null.
+
     void connect( const std::string& host, uint16_t port );
     void close();
 
@@ -30,6 +32,8 @@ public:
      */
     bool send( const char *buffer, size_t size );
     bool send( const std::string& data );
+
+    std::string receive();
 
     bool is_connected() const noexcept;
 
