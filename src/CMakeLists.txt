@@ -84,6 +84,9 @@ add_sources(
     receivedframe.cpp
     reducedbuffer.h
     returnedmessage.h
+    simpleconnectionhandler.cpp
+    simplepoller.cpp
+    simpletcpsocket.cpp
     table.cpp
     transactioncommitframe.h
     transactioncommitokframe.h
