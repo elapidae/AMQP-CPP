@@ -82,6 +82,11 @@
 #include "amqpcpp/connectionimpl.h"
 #include "amqpcpp/connection.h"
 
+#include "amqpcpp/simplepoller.h"
+#include "amqpcpp/simpletcpsocket.h"
+#include "amqpcpp/simpleconnectionhandler.h"
+
+
 // classes that are very commonly used
 #include "amqpcpp/exception.h"
 #include "amqpcpp/protocolexception.h"

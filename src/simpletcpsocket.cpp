@@ -1,53 +1,208 @@
-#include "amqpcpp/simpletcpsocket.h"
+/**
+ *  SimpleTcpSocket.cpp
+ *
+ *  Implementation of the OS independent TCP socket.
+ *
+ *  @author Gromtsev Alexander <elapidae@yandex.ru>
+ *  @copyright B2Broker
+ */
+
+/**
+ *  Dependencies
+ */
+#include "includes.h"
+
 
 #include <cassert>
-#include "amqpcpp/simplepoller.h"
 
-#include <features.h>
-#ifdef _POSIX_C_SOURCE
-    #define FOR_POLLER_WE_SHOULD_USE_LINUX
+#include <errno.h>      //  https://man7.org/linux/man-pages/man3/errno.3.html
+#include <string.h>     //  for ::strerror_r / ::strerror_s function
+
+
+//=======================================================================================
+/// Define OS
+//=======================================================================================
+#if (defined __WIN32) or (defined __WIN64)
+    #define FOR_SOCKETS_WE_SHOULD_USE_WINDOWS 1
+    #define FOR_SOCKETS_WE_SHOULD_USE_LINUX   0
+#else
+    #define FOR_SOCKETS_WE_SHOULD_USE_WINDOWS 0
+    #define FOR_SOCKETS_WE_SHOULD_USE_LINUX   1
 #endif
+//=======================================================================================
 
-#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
-    //  https://man7.org/linux/man-pages/man3/errno.3.html
-    #include <errno.h>
-    #include <string.h>     //  for ::strerror_r function
 
+//=======================================================================================
+/// OS-dependent includes
+//=======================================================================================
+#if FOR_SOCKETS_WE_SHOULD_USE_LINUX
     #include <unistd.h>     //  for ::close
     #include <fcntl.h>      //  for nonblock mode
 
     #include <sys/socket.h> //  Our work
     #include <arpa/inet.h>  //  is here ^)
-#else   //  Windows includes
 #endif
-
-
-#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
-#else   //  Windows includes
-#endif
-
-
-#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
 //=======================================================================================
-using socket_type = int;
-static constexpr socket_type invalid_socket = -1;
+#if FOR_SOCKETS_WE_SHOULD_USE_WINDOWS
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#endif
+//=======================================================================================
+
+
+//=======================================================================================
+/// Define socket type descriptor
+//=======================================================================================
+#if FOR_SOCKETS_WE_SHOULD_USE_LINUX
+    using socket_type = int;
+    static constexpr socket_type invalid_socket = -1;
+    static constexpr int send_flags = MSG_NOSIGNAL;
+#endif
+    //=======================================================================================
+#if FOR_SOCKETS_WE_SHOULD_USE_WINDOWS
+    using socket_type = SOCKET;
+    static constexpr socket_type invalid_socket = INVALID_SOCKET;
+    static constexpr int send_flags = 0;
+#endif
+//=======================================================================================
+
+
+static std::string get_error();
+static void check_ok( bool ok, const std::string error_msg );
+
+static socket_type do_tcp_socket();
+static void do_non_out_of_band( socket_type fd );
+static void do_nonblock( socket_type fd, bool nonblock );
+static void do_inet_addr( const std::string& addr, in_addr * store );
+
+
+static std::string do_receive( socket_type fd );
+static void do_close( socket_type fd );
+
+
+//=======================================================================================
+//  OS-dependent calls.
+//=======================================================================================
+#if FOR_SOCKETS_WE_SHOULD_USE_LINUX
+//=======================================================================================
+static void do_non_out_of_band( socket_type fd )
+{
+    int val = 1;
+    auto res = ::setsockopt( fd, SOL_SOCKET, SO_OOBINLINE, &val, sizeof(val) );
+    check_ok( res == 0, "Cannot unset tcp out of band" );
+}
+//=======================================================================================
+static void do_nonblock( socket_type fd, bool nonblock )
+{
+    auto flags = ::fcntl( fd, F_GETFL );
+    if ( flags == -1 )
+        throw std::runtime_error( "Cannot get tcp flags: '" + get_error() + "'" );
+
+    if ( nonblock ) flags |=  O_NONBLOCK;
+    else            flags &= ~O_NONBLOCK;
+
+    auto res = ::fcntl( fd, F_SETFL, flags );
+    check_ok( res != -1, "Cannot set tcp flags" );
+}
+//=======================================================================================
+static void do_inet_addr( const std::string& addr, in_addr * store )
+{
+    auto res = ::inet_aton( addr.c_str(), store );
+    check_ok( res, "Bad ip: '" + addr + "'" );
+}
+//=======================================================================================
+#endif // FOR_SOCKETS_WE_SHOULD_USE_LINUX
+//=======================================================================================
+#if FOR_SOCKETS_WE_SHOULD_USE_WINDOWS
+//=======================================================================================
+static void do_non_out_of_band( socket_type fd )
+{
+    int val = 1;
+    auto ptr = static_cast<const char*>( static_cast<const void*>(&val) );
+    auto res = ::setsockopt( fd, SOL_SOCKET, SO_OOBINLINE, ptr, sizeof(val) );
+    check_ok( res == 0, "Cannot unset tcp out of band" );
+}
+//=======================================================================================
+//  See https://docs.microsoft.com/en-us/windows/win32/api/winsock/
+//      nf-winsock-ioctlsocket?redirectedfrom=MSDN
+static void do_nonblock( socket_type fd, bool nonblock )
+{
+    u_long mode = nonblock ? 0 : 1;
+    auto res = ioctlsocket( fd, FIONBIO, &mode );
+    check_ok( res == NO_ERROR, "Cannot set nonblock on tcp socket" );
+}
+//=======================================================================================
+static void do_inet_addr( const std::string& addr, in_addr * store )
+{
+    store->s_addr = inet_addr( addr.c_str() );
+    //  Has not any check, so it will during connect...
+}
+//=======================================================================================
+#endif  // FOR_SOCKETS_WE_SHOULD_USE_WINDOWS
+//=======================================================================================
+
+
+//=======================================================================================
+//  OS independent calls.
 //=======================================================================================
 static std::string get_error()
 {
     char buf[256];
-    ::strerror_r( errno, buf, sizeof(buf) );
+    ::strerror_s( buf, sizeof(buf), errno );
     return buf;
+}
+//=======================================================================================
+static void check_ok( bool ok, const std::string error_msg )
+{
+    if ( ok ) return;
+    throw std::runtime_error( error_msg + ": '" + get_error() + "'" );
 }
 //=======================================================================================
 static socket_type do_tcp_socket()
 {
     auto res = ::socket( AF_INET, SOCK_STREAM, 0 );
-
-    if ( res != invalid_socket )
-        return res;
-
-    throw std::runtime_error( "Cannot init tcp socket: '" + get_error() + "'" );
+    check_ok( res != invalid_socket, "Init TCP socket" );
+    return res;
 }
+//=======================================================================================
+static void do_connect( socket_type fd, const sockaddr_in *addr )
+{
+    auto ptr = static_cast<const sockaddr*>( static_cast<const void*>(addr) );
+    auto res = ::connect( fd, ptr, sizeof(*addr) );
+    check_ok( res == 0, "Cannot connect tcp socket" );
+}
+//=======================================================================================
+//  Sending while all data was sent. Do not do async sending, because buffers will grow.
+static bool do_send( socket_type fd, const char *ptr, size_t size )
+{
+    while (true)
+    {
+        auto sended = ::send( fd, ptr, size, send_flags );
+        size_t usended = size_t( sended );
+
+        if ( sended < 0 && errno == EINTR ) continue;
+
+        if ( sended  <  0 )    return false;
+        if ( usended == size ) return true;
+
+        assert( usended < size );
+        ptr  += usended;
+        size -= usended;
+    }
+}
+//=======================================================================================
+//  OS independent calls.
+//=======================================================================================
+
+
+/*
+*/
+//=======================================================================================
+
+
+
+
+#ifdef FOR_POLLER_WE_SHOULD_USE_LINUX
 //=======================================================================================
 static std::string do_receive( socket_type fd )
 {
@@ -81,72 +236,6 @@ static std::string do_receive( socket_type fd )
 static void do_close( socket_type fd )
 {
     ::close( fd );
-}
-//=======================================================================================
-static void do_inet_addr( const char* addr, in_addr * store )
-{
-    auto res = ::inet_aton( addr, store );
-
-    if ( res != 0 )
-        return;
-
-    throw std::runtime_error( std::string("Bad ip:'") + addr + "'." );
-}
-//=======================================================================================
-static void do_connect( socket_type fd, const sockaddr_in *addr )
-{
-    auto ptr = static_cast<const sockaddr*>( static_cast<const void*>(addr) );
-    auto res = ::connect( fd, ptr, sizeof(*addr) );
-
-    if ( res == 0 )
-        return;
-
-    throw std::runtime_error( "Cannot connect tcp socket: '" + get_error() + "'" );
-}
-//=======================================================================================
-//  It is very strange flag for shadow mode. There is nothing good with this mode.
-static void do_non_out_of_band( socket_type fd )
-{
-    int val = 1;
-    auto res = ::setsockopt( fd, SOL_SOCKET, SO_OOBINLINE, &val, sizeof(val) );
-
-    if ( res == 0 )
-        return;
-
-    throw std::runtime_error( "Cannot unset tcp out of band: '" +
-                              get_error() + "'" );
-}
-//=======================================================================================
-static void do_nonblock( socket_type fd, bool nonblock )
-{
-    auto flags = ::fcntl( fd, F_GETFL );
-    if ( flags == -1 )
-        throw std::runtime_error( "Cannot get tcp flags: '" + get_error() + "'" );
-
-    if ( nonblock ) flags |=  O_NONBLOCK;
-    else            flags &= ~O_NONBLOCK;
-
-    flags = ::fcntl( fd, F_SETFL, flags );
-    if ( flags == -1 )
-        throw std::runtime_error( "Cannot set tcp flags: '" + get_error() + "'" );
-}
-//=======================================================================================
-static bool do_send( socket_type fd, const char *ptr, size_t size )
-{
-    while (true)
-    {
-        auto sended = ::send( fd, ptr, size, MSG_NOSIGNAL );
-        size_t usended = size_t( sended );
-
-        if ( sended < 0 && errno == EINTR ) continue;
-
-        if ( sended  <  0 )    return false;
-        if ( usended == size ) return true;
-
-        assert( usended < size );
-        ptr  += usended;
-        size -= usended;
-    }
 }
 //=======================================================================================
 #else   //  Windows includes
@@ -212,7 +301,7 @@ void SimpleTcpSocket::connect( const std::string& host, uint16_t port )
     do_nonblock( fd(), false );
 
     struct sockaddr_in server;
-    bzero( &server, sizeof(server) );
+    memset( &server, 0, sizeof(server) );
 
     do_inet_addr( host.c_str(), &server.sin_addr );
     server.sin_family = AF_INET;
