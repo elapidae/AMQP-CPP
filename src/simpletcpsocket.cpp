@@ -61,6 +61,11 @@
     using socket_type = int;
     static constexpr socket_type invalid_socket = -1;
     static constexpr int send_flags = MSG_NOSIGNAL;
+
+    #ifndef strerror_s
+        #define strerror_s(b,s,e) strerror_r(e,b,s);
+    #endif
+
 #endif
     //=======================================================================================
 #if FOR_SOCKETS_WE_SHOULD_USE_WINDOWS

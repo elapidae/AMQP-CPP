@@ -22,9 +22,17 @@
 
     //  for ::strerror_r function
     #include <string.h>
+
+    using sock_type = int;
+
+    #ifndef strerror_s
+        #define strerror_s(b,s,e) strerror_r(e,b,s);
+    #endif
 #endif
 #if FOR_POLLER_WE_SHOULD_USE_WINDOWS
     #include <winsock2.h>
+
+    using sock_type = u_int;
 #endif
 
 using namespace AMQP;
@@ -66,7 +74,6 @@ int SimplePoller::_pimpl::fill_sets_and_calc_nfds( fd_set * read_set,
                                                    fd_set * write_set,
                                                    fd_set * except_set )
 {
-    using sock_type = decltype( read_set->fd_array[0] );
     FD_ZERO( read_set   );
     FD_ZERO( write_set  );
     FD_ZERO( except_set );
