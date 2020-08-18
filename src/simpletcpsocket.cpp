@@ -43,6 +43,8 @@
     #include <unistd.h>     //  for ::close
     #include <fcntl.h>      //  for nonblock mode
 
+    #include <netdb.h>      //  for resolving inet addresses.
+
     #include <sys/socket.h> //  Our work
     #include <arpa/inet.h>  //  is here ^)
 #endif
@@ -124,12 +126,6 @@ static bool is_err_would_block()
     return errno == EAGAIN;
 }
 //=======================================================================================
-static void do_inet_addr( const std::string& addr, in_addr * store )
-{
-    auto res = ::inet_aton( addr.c_str(), store );
-    check_ok( res, "Bad ip: '" + addr + "'" );
-}
-//=======================================================================================
 static void do_close( socket_type fd )
 {
     ::close( fd );
@@ -176,12 +172,6 @@ static bool is_err_would_block()
     return WSAGetLastError() == WSAEWOULDBLOCK;
 }
 //=======================================================================================
-static void do_inet_addr( const std::string& addr, in_addr * store )
-{
-    store->s_addr = inet_addr( addr.c_str() );
-    //  Has not any check, so it will during connect...
-}
-//=======================================================================================
 static void do_close( socket_type fd )
 {
     ::closesocket( fd );
@@ -217,6 +207,39 @@ static socket_type do_tcp_socket()
     auto res = ::socket( AF_INET, SOCK_STREAM, 0 );
     check_ok( res != invalid_socket, "Init TCP socket" );
     return res;
+}
+//=======================================================================================
+static void do_inet_addr( const std::string& inet_addr, in_addr * store )
+{
+    struct addrinfo *addr = nullptr;
+
+    auto call_res = getaddrinfo( inet_addr.c_str(), nullptr, nullptr, &addr );
+    check_ok( call_res == 0, "resolve address '" + inet_addr +
+                             "': " + gai_strerror(call_res) );
+
+    auto cur_ptr = addr;
+    while ( cur_ptr )
+    {
+        auto ok1 = cur_ptr->ai_family   == AF_INET;
+        auto ok2 = cur_ptr->ai_protocol == IPPROTO_TCP;
+        auto ok3 = cur_ptr->ai_socktype == SOCK_STREAM;
+
+        if ( !ok1 || !ok2 || !ok3 )
+        {
+            cur_ptr = cur_ptr->ai_next;
+            continue;
+        }
+
+        assert ( cur_ptr->ai_addrlen == sizeof(sockaddr_in) );
+        auto sain = static_cast<sockaddr_in*>( static_cast<void*>(cur_ptr->ai_addr) );
+        *store = sain->sin_addr;
+
+        freeaddrinfo( addr );
+        return;
+    } // while cur_ptr not null.
+
+    freeaddrinfo( addr );
+    throw std::runtime_error("Cannot find correct ip4 for address '" + inet_addr + "'");
 }
 //=======================================================================================
 static void do_connect( socket_type fd, const sockaddr_in *addr )
