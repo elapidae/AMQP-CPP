@@ -19,7 +19,7 @@ SimpleConnectionHandler::SimpleConnectionHandler( SimplePoller *poller )
     };
 }
 //=======================================================================================
-void SimpleConnectionHandler::connect( std::string address, uint16_t port )
+void SimpleConnectionHandler::connect( const std::string& address, uint16_t port )
 {
     _socket.connect( address, port );
 }
@@ -31,8 +31,9 @@ void SimpleConnectionHandler::onData( Connection *connection,
     _socket.send( buffer, size );
 }
 //=======================================================================================
-void SimpleConnectionHandler::onClosed( Connection * connection )
+void SimpleConnectionHandler::onClosed( Connection *connection )
 {
+    (void)connection;
     _socket.close();
 }
 //=======================================================================================
