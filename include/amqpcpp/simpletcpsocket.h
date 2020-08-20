@@ -17,7 +17,7 @@ public:
     std::function<void(std::string)> received;
     std::function<void()> disconnected;
 
-    explicit SimpleTcpSocket();
+    //  Poller can be null, but do it in code using your mind.
     explicit SimpleTcpSocket( SimplePoller * poller );
     virtual ~SimpleTcpSocket();
 
