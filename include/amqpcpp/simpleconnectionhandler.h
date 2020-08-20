@@ -15,7 +15,7 @@ public:
     //  Poller can be null, but do it in code using your mind.
     explicit SimpleConnectionHandler( SimplePoller * poller );
 
-    void connect( std::string address, uint16_t port );
+    void connect( const std::string& address, uint16_t port );
 
     virtual void onData(Connection *connection, const char *buffer, size_t size) override;
 

@@ -177,6 +177,22 @@ static void do_close( socket_type fd )
     ::closesocket( fd );
 }
 //=======================================================================================
+struct _do_WSAStartup final
+{
+    _do_WSAStartup()
+    {
+        WSADATA wsa;
+        auto res = WSAStartup(MAKEWORD(2,2),&wsa);
+        if ( res != 0 )
+            throw std::runtime_error( "Cannot WSAStartup(MAKEWORD(2,2),&wsa)" );
+    }
+    ~_do_WSAStartup()
+    {
+        WSACleanup();
+    }
+};
+static _do_WSAStartup _wsa_startup;
+//=======================================================================================
 #endif  // FOR_SOCKETS_WE_SHOULD_USE_WINDOWS
 //=======================================================================================
 
@@ -341,19 +357,14 @@ void SimpleTcpSocket::_pimpl::ready_read()
 //=======================================================================================
 //      SimpleTcpSocket API
 //=======================================================================================
-SimpleTcpSocket::SimpleTcpSocket()
+SimpleTcpSocket::SimpleTcpSocket( SimplePoller * poller )
     : _p( new _pimpl )
 {
-    _p->owner = this;
-    _p->fd    = do_tcp_socket();
+    _p->owner  = this;
+    _p->fd     = do_tcp_socket();
+    _p->poller = poller;
 
     do_non_out_of_band( fd() );
-}
-//=======================================================================================
-SimpleTcpSocket::SimpleTcpSocket( SimplePoller * poller )
-    : SimpleTcpSocket()
-{
-    _p->poller = poller;
 }
 //=======================================================================================
 SimpleTcpSocket::~SimpleTcpSocket()
