@@ -16,6 +16,7 @@ public:
     explicit SimpleConnectionHandler( SimplePoller * poller );
 
     void connect( const std::string& address, uint16_t port );
+    bool is_connected() const noexcept;
 
     virtual void onData(Connection *connection, const char *buffer, size_t size) override;
 

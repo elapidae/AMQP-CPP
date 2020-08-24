@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <memory>
+#include <iostream>
 
 namespace AMQP
 {
@@ -79,6 +80,7 @@ template<typename Period>
 int SimplePoller::poll( Period period )
 {
     using namespace std::chrono;
+
     auto microsec = duration_cast<microseconds>(period).count();
     microsec = microsec > 0 ? microsec : 0;
     return _poll( microsec );

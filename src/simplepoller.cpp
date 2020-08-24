@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 
+#include <iostream>
+
 #if (defined __WIN32) or (defined __WIN64)
     #define FOR_POLLER_WE_SHOULD_USE_WINDOWS 1
     #define FOR_POLLER_WE_SHOULD_USE_LINUX   0
@@ -25,14 +27,31 @@
 
     using sock_type = int;
 
-    #ifndef strerror_s
-        #define strerror_s(b,s,e) strerror_r(e,b,s);
-    #endif
+    static bool is_eintr()
+    {
+        return errno == EINTR;
+    }
+    static std::string get_err_text()
+    {
+        char err_buf[256];
+        err_buf[0] = 0;
+        ::strerror_r( errno, err_buf, sizeof(err_buf) );
+    }
 #endif
 #if FOR_POLLER_WE_SHOULD_USE_WINDOWS
     #include <winsock2.h>
 
     using sock_type = u_int;
+
+    static bool is_eintr()
+    {
+        return false;
+    }
+    static std::string get_err_text()
+    {
+        return "LastError:" + std::to_string(GetLastError()) +
+        "\nsee: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes";
+    }
 #endif
 
 using namespace AMQP;
@@ -111,14 +130,12 @@ int SimplePoller::_pimpl::do_select( fd_set *read_set,
         if ( res >= 0 )
             break;
 
-        if ( errno == EINTR )   //  In linux systems we must to check this situation.
+        if ( is_eintr() )   //  In linux systems we must to check this situation.
             continue;
 
-        char err_buf[256];
-        err_buf[0] = 0;
-        ::strerror_s( err_buf, sizeof(err_buf), errno );
-
-        auto msg = std::string("SimplePoller::poll() select error: '") + err_buf + "'";
+        auto msg = std::string("SimplePoller::poll() select error: '")
+                    + get_err_text() + "'";
+        std::cout << msg << std::endl;
         throw std::runtime_error( msg );
     }
     return res;
@@ -134,6 +151,7 @@ int SimplePoller::_pimpl::poll( int microsec )
     fd_set read_set, write_set, except_set;
 
     //  res contains count of selected fds.
+    //std::cout << "do_select with us=" << microsec << std::endl;
     auto res = do_select( &read_set, &write_set, &except_set, tv_ptr );
 
     //  Receivers can call del() inside circles, but we cannot change maps.

@@ -24,6 +24,11 @@ void SimpleConnectionHandler::connect( const std::string& address, uint16_t port
     _socket.connect( address, port );
 }
 //=======================================================================================
+bool SimpleConnectionHandler::is_connected() const noexcept
+{
+    return _socket.is_connected();
+}
+//=======================================================================================
 void SimpleConnectionHandler::onData( Connection *connection,
                                       const char *buffer, size_t size )
 {
