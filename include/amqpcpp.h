@@ -86,3 +86,8 @@
 #include "amqpcpp/simplepoller.h"
 #include "amqpcpp/simpletcpsocket.h"
 
+#include "amqpcpp/smartsettings.h"
+#include "amqpcpp/smartrpcclient.h"
+#include "amqpcpp/smartrpcserver.h"
+
+

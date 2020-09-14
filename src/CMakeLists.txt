@@ -84,9 +84,14 @@ add_sources(
     receivedframe.cpp
     reducedbuffer.h
     returnedmessage.h
+
     simpleconnectionhandler.cpp
     simplepoller.cpp
     simpletcpsocket.cpp
+
+    smartrpcserver.cpp
+    smartrpcclient.cpp
+
     table.cpp
     transactioncommitframe.h
     transactioncommitokframe.h
