@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <algorithm>
 
+
 /**
  *  Set up namespace
  */
@@ -38,12 +39,6 @@ class DeferredReceiver;
  */
 class Message : public Envelope
 {
-private:
-   /**
-     *  An allocated and mutable block of memory underlying _body
-     *  @var    char *
-     */
-    char *_mutableBody = nullptr;
 
 protected:
     /**
@@ -59,13 +54,6 @@ protected:
     std::string _routingkey;
     
     /**
-     *  Number of bytes already filled
-     *  @var    size_t
-     */
-    size_t _filled = 0;
-
-    
-    /**
      *  We are an open book to the consumer handler
      */
     friend class DeferredReceiver;
@@ -75,6 +63,7 @@ protected:
      *  This field is set when the header is received
      *  @param  uint64_t
      */
+    ssize_t _body_size_for_receive = -1;
     void setBodySize(uint64_t size)
     {
         // safety-check: on 32-bit platforms size_t is obviously also a 32-bit dword
@@ -83,7 +72,7 @@ protected:
         if (std::numeric_limits<size_t>::max() < size) throw std::runtime_error("message is too big for this system");
 
         // store the new size
-        _bodySize = size;
+        _body_size_for_receive = size;
     }
 
     /**
@@ -94,39 +83,16 @@ protected:
      */
     bool append(const char *buffer, uint64_t size)
     {
-        // is the body already allocated?
-        if (_mutableBody)
-        {
-            // prevent overflow
-            size = std::min(size, _bodySize - _filled);
+        _data.append( buffer, size );
             
-            // append more data
-            memcpy(_mutableBody + _filled, buffer, (size_t)size);
-            
-            // update filled data
-            _filled += (size_t)size;
-        }
-        else if (size >= _bodySize)
-        {
-            // we do not have to combine multiple frames, so we can store
-            // the buffer pointer in the message 
-            _body = buffer;
-        }
-        else
-        {
-            // allocate the buffer
-            _mutableBody = (char *)malloc((size_t)_bodySize);
-            
-            // expose the body in its immutable form
-            _body = _mutableBody;
-            
-            // store the initial data
-            _filled = std::min((size_t)size, (size_t)_bodySize);
-            memcpy(_mutableBody, buffer, _filled);
-        }
-            
+        if ( _body_size_for_receive < 0 )
+            throw std::logic_error("message size is not declared");
+
+        if ( _body_size_for_receive > bodySize() )
+            throw std::runtime_error("message size more than need");
+
         // check if we're done
-        return _filled >= _bodySize;
+        return _body_size_for_receive == bodySize();
     }
 
 public:
@@ -145,14 +111,6 @@ public:
      *  @param  message the message to copy
      */
     Message(const Message &message) = delete;
-
-    /**
-     *  Destructor
-     */
-    virtual ~Message()
-    {
-        if (_mutableBody) free(_mutableBody);
-    }
 
     /**
      *  The exchange to which it was originally published

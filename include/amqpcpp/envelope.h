@@ -28,17 +28,7 @@ namespace AMQP {
 class Envelope : public MetaData
 {
 protected:
-    /**
-     *  Pointer to the body data (the memory is not managed by the AMQP library!)
-     *  @var    const char *
-     */
-    const char *_body;
-
-    /**
-     *  Size of the data
-     *  @var    uint64_t
-     */
-    uint64_t _bodySize;
+    std::string _data;
     
 public:
     /**
@@ -50,7 +40,8 @@ public:
      *  @param  body
      *  @param  size
      */
-    Envelope(const char *body, uint64_t size) : MetaData(), _body(body), _bodySize(size) {}
+    Envelope(const char *body, uint64_t size) : MetaData(), _data(body,size) {}
+    Envelope( const std::string& data ) : MetaData(), _data(data) {}
 
     /**
      *  Disabled copy constructor
@@ -70,7 +61,7 @@ public:
      */
     const char *body() const
     {
-        return _body;
+        return _data.c_str();
     }
 
     /**
@@ -79,7 +70,7 @@ public:
      */
     uint64_t bodySize() const
     {
-        return _bodySize;
+        return _data.size();
     }
 };
 

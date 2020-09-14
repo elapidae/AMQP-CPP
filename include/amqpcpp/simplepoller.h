@@ -18,6 +18,10 @@ class SimplePoller final
 public:
     class ReceiverInterface;
 
+    //  Returns one poller in the current thread. Used for Smart decitions.
+    static SimplePoller *thread_poller();
+
+
     SimplePoller();
     virtual ~SimplePoller();
 

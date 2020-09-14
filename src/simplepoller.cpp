@@ -36,6 +36,7 @@
         char err_buf[256];
         err_buf[0] = 0;
         ::strerror_r( errno, err_buf, sizeof(err_buf) );
+        return err_buf;
     }
 #endif
 #if FOR_POLLER_WE_SHOULD_USE_WINDOWS
@@ -183,6 +184,15 @@ int SimplePoller::_pimpl::poll( int microsec )
 
 //=======================================================================================
 //      OS independent SimplePoller part
+//=======================================================================================
+static thread_local std::unique_ptr<SimplePoller> _thread_poll;
+SimplePoller *SimplePoller::thread_poller()
+{
+    if ( !_thread_poll )
+        _thread_poll.reset( new SimplePoller );
+
+    return _thread_poll.get();
+}
 //=======================================================================================
 SimplePoller::SimplePoller()
     : _p( new _pimpl )

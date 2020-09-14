@@ -81,3 +81,8 @@
 #include "amqpcpp/connectionimpl.h"
 #include "amqpcpp/connection.h"
 #include "amqpcpp/openssl.h"
+
+#include "amqpcpp/simpleconnectionhandler.h"
+#include "amqpcpp/simplepoller.h"
+#include "amqpcpp/simpletcpsocket.h"
+
