@@ -1,4 +1,4 @@
-#include "smartsubscriber.h"
+#include "amqpcpp.h"
 
 #include <cassert>
 

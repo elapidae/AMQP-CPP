@@ -1,4 +1,4 @@
-#include "smartpublisher.h"
+#include "amqpcpp.h"
 
 using namespace AMQP;
 
