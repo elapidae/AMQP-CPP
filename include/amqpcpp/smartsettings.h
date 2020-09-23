@@ -16,6 +16,7 @@ public:
     std::string vhost       = "/";
     std::string queue       = "AgentChannel";
     std::string binding_key = "AgentQueue";
+    std::string exchange    = "AgentExchange";
 };
 
 } // namespace AMQP

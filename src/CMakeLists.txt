@@ -92,6 +92,9 @@ add_sources(
     smartrpcserver.cpp
     smartrpcclient.cpp
 
+    smartpublisher.cpp
+    smartsubscriber.cpp
+
     table.cpp
     transactioncommitframe.h
     transactioncommitokframe.h

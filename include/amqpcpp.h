@@ -90,4 +90,6 @@
 #include "amqpcpp/smartrpcclient.h"
 #include "amqpcpp/smartrpcserver.h"
 
+#include "amqpcpp/smartpublisher.h"
+#include "amqpcpp/smartsubscriber.h"
 
