@@ -17,9 +17,10 @@ class SimplePoller final
 {
 public:
     class ReceiverInterface;
+    using PollerPtr = std::shared_ptr<SimplePoller>;
 
     //  Returns one poller in the current thread. Used for Smart decitions.
-    static SimplePoller *thread_poller();
+    static PollerPtr thread_poller();
 
 
     SimplePoller();

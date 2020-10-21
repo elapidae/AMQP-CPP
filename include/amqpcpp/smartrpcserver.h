@@ -25,8 +25,9 @@ namespace AMQP
 
         SmartRPCServer( SmartSettings settings, Callback cb );
 
-        void poll();
+        void connect();
 
+        void poll();
 
     private:
         SmartSettings   _settings;
@@ -35,8 +36,6 @@ namespace AMQP
         SimpleConnectionHandler     _handler;
         std::unique_ptr<Connection> _connection;
         std::unique_ptr<Channel>    _channel;
-
-        void _connect();
 
         void _on_amqp_received( const AMQP::Message &message,
                                 uint64_t deliveryTag,

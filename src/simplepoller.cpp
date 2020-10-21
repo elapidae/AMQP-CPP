@@ -1,8 +1,18 @@
+#include <iostream>
+static std::string _fname(const std::string& f) { return f.substr( f.rfind('/')+1 ); }
+#define vpos (std::string("[") + _fname(__FILE__) + ":" + std::to_string(__LINE__) + "]")
+#define vdeb std::cout << vpos << "=>\t"
+#define eoln std::endl;
+#define vtrace vdeb << "trace" << eoln
+
 #include "includes.h"
 
 #include <stdexcept>
+#include <cassert>
 #include <map>
 #include <vector>
+#include <mutex>
+#include <thread>
 
 #include <iostream>
 
@@ -123,6 +133,9 @@ int SimplePoller::_pimpl::do_select( fd_set *read_set,
     write_set  = write_fds.empty()  ? nullptr : write_set;
     except_set = except_fds.empty() ? nullptr : except_set;
 
+    if ( !read_set && !write_set && !except_set )
+        throw std::runtime_error( "do_select(): nothing to select..." );
+
     int res = -1;
     while ( res == -1 )
     {
@@ -185,7 +198,10 @@ int SimplePoller::_pimpl::poll( int microsec )
 //=======================================================================================
 //      OS independent SimplePoller part
 //=======================================================================================
-static thread_local std::unique_ptr<SimplePoller> _thread_poll;
+//  Вот этот код не работает в маздае, при закрытии потока происходит разименование 0.
+//  Соответсвтвеноо, переделываю код на хранение через shared_ptr.
+/*
+thread_local std::unique_ptr<SimplePoller> _thread_poll;
 SimplePoller *SimplePoller::thread_poller()
 {
     if ( !_thread_poll )
@@ -193,6 +209,50 @@ SimplePoller *SimplePoller::thread_poller()
 
     return _thread_poll.get();
 }
+*/
+
+//  1. Лочим мьютекс, лезем в мапу, ищем указатель по id потока.
+//  2. Если такой уже есть и он живой -- возвращаем и не паримся,
+//     если мертвый -- выкидываем.
+//  3. Создаем новый, откладываем вик в мапу, результат определен.
+//  4. Пытаемся почистить мапу.
+AMQP::SimplePoller::PollerPtr SimplePoller::thread_poller()
+{
+    using WeakPtr = std::weak_ptr<SimplePoller>;
+
+    static std::mutex pmutex;
+    static std::map<std::thread::id,WeakPtr> pmap;
+
+    auto id = std::this_thread::get_id();
+
+    std::unique_lock<std::mutex> lock( pmutex );
+    auto it = pmap.find( id );
+    if ( it != pmap.end() )
+    {
+        auto res = (*it).second.lock();
+
+        if ( res )
+            return res;
+
+        pmap.erase( it );
+    }
+
+    for ( auto it = pmap.begin(); it != pmap.end(); ++it )
+    {
+        if ( !(*it).second.lock() )
+        {
+            pmap.erase( it );
+            break;
+        }
+    }
+
+    auto res = std::make_shared<SimplePoller>();
+    pmap.emplace( id, res );
+    return res;
+}
+//=======================================================================================
+
+
 //=======================================================================================
 SimplePoller::SimplePoller()
     : _p( new _pimpl )

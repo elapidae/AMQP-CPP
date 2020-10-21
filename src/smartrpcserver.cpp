@@ -31,12 +31,12 @@ SmartRPCServer::SmartRPCServer( SmartSettings settings, Callback cb )
     , _callback ( std::move(cb) )
     , _handler  ( SimplePoller::thread_poller() )
 {
-    _connect();
+    //  No connect here.
 }
 //=======================================================================================
 void SmartRPCServer::poll()
 {
-    _connect();
+    connect();
 
     _something_received = false;
 
@@ -44,7 +44,7 @@ void SmartRPCServer::poll()
         SimplePoller::thread_poller()->poll();
 }
 //=======================================================================================
-void SmartRPCServer::_connect()
+void SmartRPCServer::connect()
 {
     if ( _handler.is_connected() )
         return;

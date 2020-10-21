@@ -6,6 +6,7 @@
 
 //  TODO -- change for correct path in prod.
 #include "simpletcpsocket.h"
+#include "simplepoller.h"
 
 namespace AMQP {
 
@@ -13,7 +14,7 @@ class SimpleConnectionHandler : public ConnectionHandler
 {
 public:
     //  Poller can be null, but do it in code using your mind.
-    explicit SimpleConnectionHandler( SimplePoller * poller );
+    explicit SimpleConnectionHandler( SimplePoller::PollerPtr poller );
 
     void connect( const std::string& address, uint16_t port );
     bool is_connected() const noexcept;
@@ -25,6 +26,7 @@ public:
 private:
     std::string     _received_data;
     SimpleTcpSocket _socket;
+    SimplePoller::PollerPtr _poller;
     Connection     *_connection = nullptr;
 };
 
