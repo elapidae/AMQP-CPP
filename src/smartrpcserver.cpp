@@ -59,13 +59,17 @@ void SmartRPCServer::connect()
     _channel.reset( new Channel(_connection.get()) );
     _channel->setQos(1);
 
+    if ( !_settings.exchange.empty() )
+        throw std::runtime_error("Non standard exchange for RPC not implemented, TODO!");
+
     _channel->declareQueue( _settings.queue );
 
     auto on_received = [this](const AMQP::Message &message,
                               uint64_t deliveryTag,
                               bool redelivered)
     {
-        this->_on_amqp_received( message, deliveryTag, redelivered );
+        (void)redelivered;
+        this->_on_amqp_received( message, deliveryTag );
     };
 
     _channel->consume("").onReceived( on_received );
@@ -73,12 +77,9 @@ void SmartRPCServer::connect()
 //=======================================================================================
 //  TODO
 //  Разобраться с контрактами на нашей петле.
-void SmartRPCServer::_on_amqp_received( const Message &message,
-                                        uint64_t deliveryTag,
-                                        bool redelivered )
+void SmartRPCServer::_on_amqp_received( const Message& message, uint64_t deliveryTag )
 {
     _something_received = true;
-    (void) redelivered;
 
     auto env = _callback( message );
 
