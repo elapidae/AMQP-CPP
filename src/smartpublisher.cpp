@@ -6,20 +6,18 @@ using namespace AMQP;
 SmartPublisher::SmartPublisher( AMQP::SmartSettings sett )
     : _settings( std::move(sett) )
     , _handler( SimplePoller::thread_poller() )
-{
-    _connect();
-}
+{}
 //=======================================================================================
 void SmartPublisher::publish( const std::string &msg )
 {
     _connect();
-    _channel->publish( _settings.exchange, "", msg );
+    _channel->publish( _settings.exchange, _settings.binding_key, msg );
 }
 //=======================================================================================
 void SmartPublisher::publish( const Envelope& env )
 {
     _connect();
-    _channel->publish( _settings.exchange, "", env );
+    _channel->publish( _settings.exchange, _settings.binding_key, env );
 }
 //=======================================================================================
 void SmartPublisher::_connect()
