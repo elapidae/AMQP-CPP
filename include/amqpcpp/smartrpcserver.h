@@ -29,16 +29,19 @@ namespace AMQP
 
         void poll();
 
+
     private:
         SmartSettings   _settings;
         Callback        _callback;
 
+        SimplePoller                _poller;
         SimpleConnectionHandler     _handler;
         std::unique_ptr<Connection> _connection;
         std::unique_ptr<Channel>    _channel;
 
-        void _on_amqp_received( const AMQP::Message& message,
-                                uint64_t deliveryTag);
+        void _connect();
+
+        void _on_amqp_received( const AMQP::Message& message, uint64_t deliveryTag );
 
         bool _something_received = false;
     };

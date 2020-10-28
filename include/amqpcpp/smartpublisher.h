@@ -18,6 +18,7 @@ public:
 private:
     SmartSettings _settings;
 
+    SimplePoller                _poller;
     SimpleConnectionHandler     _handler;
     std::unique_ptr<Connection> _connection;
     std::unique_ptr<Channel>    _channel;

@@ -4,9 +4,9 @@ using namespace AMQP;
 
 
 //=======================================================================================
-SimpleConnectionHandler::SimpleConnectionHandler( SimplePoller::PollerPtr poller )
-    : _socket( poller.get() )
-    , _poller( std::move(poller) )
+SimpleConnectionHandler::SimpleConnectionHandler( SimplePoller *poller )
+    : _poller( poller )
+    , _socket( poller )
 {
     _socket.received = [this]( const std::string& data )
     {

@@ -216,7 +216,7 @@ SimplePoller *SimplePoller::thread_poller()
 //     если мертвый -- выкидываем.
 //  3. Создаем новый, откладываем вик в мапу, результат определен.
 //  4. Пытаемся почистить мапу.
-AMQP::SimplePoller::PollerPtr SimplePoller::thread_poller()
+AMQP::SimplePoller::PollerPtr SimplePoller::thread_poller_deprecated()
 {
     using WeakPtr = std::weak_ptr<SimplePoller>;
 

@@ -29,19 +29,20 @@ namespace AMQP
 SmartRPCServer::SmartRPCServer( SmartSettings settings, Callback cb )
     : _settings ( std::move(settings) )
     , _callback ( std::move(cb) )
-    , _handler  ( SimplePoller::thread_poller() )
+    , _poller   ()
+    , _handler  ( &_poller )
 {
-    //  No connect here.
+    _connect();
 }
 //=======================================================================================
 void SmartRPCServer::poll()
 {
-    connect();
+    _connect();
 
     _something_received = false;
 
     while ( !_something_received )
-        SimplePoller::thread_poller()->poll();
+        _poller.poll();
 }
 //=======================================================================================
 void SmartRPCServer::connect()
@@ -64,11 +65,11 @@ void SmartRPCServer::connect()
 
     _channel->declareQueue( _settings.queue );
 
-    auto on_received = [this](const AMQP::Message &message,
-                              uint64_t deliveryTag,
-                              bool redelivered)
+    auto on_received = [this]( const AMQP::Message& message,
+                               uint64_t deliveryTag,
+                               bool redelivered )
     {
-        (void)redelivered;
+        (void) redelivered;
         this->_on_amqp_received( message, deliveryTag );
     };
 
@@ -80,6 +81,7 @@ void SmartRPCServer::connect()
 void SmartRPCServer::_on_amqp_received( const Message& message, uint64_t deliveryTag )
 {
     _something_received = true;
+    (void) redelivered;
 
     auto env = _callback( message );
 

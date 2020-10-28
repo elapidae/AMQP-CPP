@@ -1,14 +1,19 @@
 #include "amqpcpp.h"
 
+#include <chrono>
+
 using namespace AMQP;
 
 //=======================================================================================
 SmartPublisher::SmartPublisher( AMQP::SmartSettings sett )
     : _settings( std::move(sett) )
-    , _handler( SimplePoller::thread_poller() )
-{}
+    , _poller  ()
+    , _handler ( &_poller )
+{
+    _connect();
+}
 //=======================================================================================
-void SmartPublisher::publish( const std::string &msg )
+void SmartPublisher::publish( const std::string& msg )
 {
     _connect();
     _channel->publish( _settings.exchange, _settings.binding_key, msg );
@@ -40,6 +45,6 @@ void SmartPublisher::_connect()
 
     //  Waiting while our exclusive queue will inited.
     while ( !let_stop )
-        SimplePoller::thread_poller()->poll();
+        _poller.poll();
 }
 //=======================================================================================

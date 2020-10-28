@@ -6,7 +6,8 @@ using namespace AMQP;
 //=======================================================================================
 SmartRPCClient::SmartRPCClient( SmartSettings sett )
     : _settings( std::move(sett) )
-    , _handler ( SimplePoller::thread_poller() )
+    , _poller  ()
+    , _handler ( &_poller )
     , _msg( {}, {} )
 {
     auto now = std::chrono::system_clock::now().time_since_epoch().count();
@@ -19,16 +20,14 @@ const Message & SmartRPCClient::execute( Envelope *env )
 {
     _connect();
 
-    //AMQP::Envelope env( env.c_str(), env.size() );
     env->setCorrelationID( _correlation );
     env->setReplyTo( _queue_name );
 
     _channel->publish( "", _settings.queue, *env );
-    //vdeb << std::string(env->body(),env->bodySize()) << eoln;
 
     _received = false;
     while( !_received )
-        SimplePoller::thread_poller()->poll();
+        _poller.poll();
 
     return _msg;
 }
@@ -67,24 +66,19 @@ void SmartRPCClient::_connect()
                                     uint64_t deliveryTag,
                                     bool redelivered )
     {
-        this->_on_received( message, deliveryTag, redelivered );
+        (void) deliveryTag;
+        (void) redelivered;
+        this->_on_received( message );
     };
     _channel->consume("", AMQP::noack).onReceived( receive_callback );
 
     //  Waiting while our exclusive queue will inited.
     while ( !queue_received )
-        SimplePoller::thread_poller()->poll();
+        _poller.poll();
 }
 //=======================================================================================
-void SmartRPCClient::_on_received( const Message &message,
-                                   uint64_t deliveryTag,
-                                   bool redelivered )
+void SmartRPCClient::_on_received( const Message &message )
 {
-    (void) deliveryTag;
-    (void) redelivered;
-
-    //vdeb << std::string{message.body(), message.bodySize()} << eoln;
-
     if( message.correlationID() != _correlation )
         return;
 

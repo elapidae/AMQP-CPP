@@ -14,7 +14,7 @@ class SimpleConnectionHandler : public ConnectionHandler
 {
 public:
     //  Poller can be null, but do it in code using your mind.
-    explicit SimpleConnectionHandler( SimplePoller::PollerPtr poller );
+    explicit SimpleConnectionHandler( SimplePoller *poller );
 
     void connect( const std::string& address, uint16_t port );
     bool is_connected() const noexcept;
@@ -24,9 +24,9 @@ public:
     virtual void onClosed(Connection *connection) override;
 
 private:
-    std::string     _received_data;
+    SimplePoller   *_poller;
     SimpleTcpSocket _socket;
-    SimplePoller::PollerPtr _poller;
+    std::string     _received_data;
     Connection     *_connection = nullptr;
 };
 

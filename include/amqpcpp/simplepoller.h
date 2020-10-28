@@ -20,7 +20,7 @@ public:
     using PollerPtr = std::shared_ptr<SimplePoller>;
 
     //  Returns one poller in the current thread. Used for Smart decitions.
-    static PollerPtr thread_poller();
+    static SimplePoller::PollerPtr thread_poller_deprecated();
 
 
     SimplePoller();
