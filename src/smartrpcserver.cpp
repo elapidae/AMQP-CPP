@@ -29,7 +29,8 @@ namespace AMQP
 SmartRPCServer::SmartRPCServer( SmartSettings settings, Callback cb )
     : _settings ( std::move(settings) )
     , _callback ( std::move(cb) )
-    , _handler  ( SimplePoller::thread_poller() )
+    , _poller   ()
+    , _handler  ( &_poller )
 {
     _connect();
 }
@@ -41,7 +42,7 @@ void SmartRPCServer::poll()
     _something_received = false;
 
     while ( !_something_received )
-        SimplePoller::thread_poller()->poll();
+        _poller.poll();
 }
 //=======================================================================================
 void SmartRPCServer::_connect()
@@ -61,11 +62,12 @@ void SmartRPCServer::_connect()
 
     _channel->declareQueue( _settings.queue );
 
-    auto on_received = [this](const AMQP::Message &message,
-                              uint64_t deliveryTag,
-                              bool redelivered)
+    auto on_received = [this]( const AMQP::Message& message,
+                               uint64_t deliveryTag,
+                               bool redelivered )
     {
-        this->_on_amqp_received( message, deliveryTag, redelivered );
+        (void) redelivered;
+        this->_on_amqp_received( message, deliveryTag );
     };
 
     _channel->consume("").onReceived( on_received );
@@ -73,12 +75,9 @@ void SmartRPCServer::_connect()
 //=======================================================================================
 //  TODO
 //  Разобраться с контрактами на нашей петле.
-void SmartRPCServer::_on_amqp_received( const Message &message,
-                                        uint64_t deliveryTag,
-                                        bool redelivered )
+void SmartRPCServer::_on_amqp_received( const Message& message, uint64_t deliveryTag )
 {
     _something_received = true;
-    (void) redelivered;
 
     auto env = _callback( message );
 

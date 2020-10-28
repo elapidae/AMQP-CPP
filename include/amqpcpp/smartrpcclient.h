@@ -17,6 +17,7 @@ public:
 private:
     SmartSettings _settings;
 
+    SimplePoller                _poller;
     SimpleConnectionHandler     _handler;
     std::unique_ptr<Connection> _connection;
     std::unique_ptr<Channel>    _channel;
@@ -33,9 +34,7 @@ private:
                     int msgcount,
                     int consumercount );
 
-    void _on_received( const AMQP::Message &message,
-                       uint64_t deliveryTag,
-                       bool redelivered );
+    void _on_received( const AMQP::Message& message );
 };
 
 } // namespace AMQP

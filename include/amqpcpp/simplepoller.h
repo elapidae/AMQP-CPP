@@ -19,7 +19,7 @@ public:
     class ReceiverInterface;
 
     //  Returns one poller in the current thread. Used for Smart decitions.
-    static SimplePoller *thread_poller();
+    static SimplePoller *thread_poller_deprecated();
 
 
     SimplePoller();

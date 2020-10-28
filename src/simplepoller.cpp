@@ -186,7 +186,7 @@ int SimplePoller::_pimpl::poll( int microsec )
 //      OS independent SimplePoller part
 //=======================================================================================
 static thread_local std::unique_ptr<SimplePoller> _thread_poll;
-SimplePoller *SimplePoller::thread_poller()
+SimplePoller *SimplePoller::thread_poller_deprecated()
 {
     if ( !_thread_poll )
         _thread_poll.reset( new SimplePoller );
