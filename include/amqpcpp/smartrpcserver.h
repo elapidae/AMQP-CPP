@@ -27,7 +27,7 @@ namespace AMQP
 
         void connect();
 
-        void poll();
+        bool poll( unsigned microsec = 0 );
 
 
     private:

@@ -32,17 +32,20 @@ SmartRPCServer::SmartRPCServer( SmartSettings settings, Callback cb )
     , _poller   ()
     , _handler  ( &_poller )
 {
-    _connect();
+    connect();
 }
 //=======================================================================================
-void SmartRPCServer::poll()
+bool SmartRPCServer::poll( unsigned microsec )
 {
-    _connect();
+    connect();
 
     _something_received = false;
 
+    int cnt;
     while ( !_something_received )
-        _poller.poll();
+        cnt = _poller.poll( std::chrono::microseconds(microsec) );
+
+    return cnt > 0;
 }
 //=======================================================================================
 void SmartRPCServer::connect()
