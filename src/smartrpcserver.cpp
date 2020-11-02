@@ -64,7 +64,11 @@ void SmartRPCServer::connect()
     _channel->setQos(1);
 
     if ( !_settings.exchange.empty() )
-        throw std::runtime_error("Non standard exchange for RPC not implemented, TODO!");
+    {
+        throw std::runtime_error
+                ("Non standard exchange for RPC not implemented, TODO! -> "
+                 "'" + _settings.exchange + "'");
+    }
 
     _channel->declareQueue( _settings.queue );
 
