@@ -65,12 +65,21 @@ void SmartRPCServer::connect()
 
     if ( !_settings.exchange.empty() )
     {
-        throw std::runtime_error
-                ("Non standard exchange for RPC not implemented, TODO! -> "
-                 "'" + _settings.exchange + "'");
+        bool inited = false;
+        auto &defer = _channel->declareExchange( _settings.exchange );
+        defer.onSuccess( [&]{ inited = true; } );
+        defer.onError( [](const char *err){ throw std::runtime_error(err); } );
+        while( !inited ) _poller.poll();
     }
 
-    _channel->declareQueue( _settings.queue );
+    if ( _settings.queue.empty() )
+        throw std::runtime_error( "Queue for RPC Server is empty" );
+
+    bool inited = false;
+    auto &defer = _channel->declareQueue( _settings.queue );
+    defer.onSuccess( [&]{ inited = true; } );
+    defer.onError( [](const char *err){ throw std::runtime_error(err); } );
+    while( !inited ) _poller.poll();
 
     auto on_received = [this]( const AMQP::Message& message,
                                uint64_t deliveryTag,
