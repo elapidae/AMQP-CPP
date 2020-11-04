@@ -43,7 +43,12 @@ bool SmartRPCServer::poll( unsigned microsec )
 
     int cnt;
     while ( !_something_received )
+    {
         cnt = _poller.poll( std::chrono::microseconds(microsec) );
+
+        //  Ждать прихода данных только если не просили ждать вечно.
+        if ( microsec != 0 ) break;
+    }
 
     return cnt > 0;
 }
