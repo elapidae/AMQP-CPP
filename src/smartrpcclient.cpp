@@ -18,6 +18,12 @@ SmartRPCClient::SmartRPCClient( SmartSettings sett )
 //=======================================================================================
 const Message & SmartRPCClient::execute( Envelope *env )
 {
+    execute( env, std::chrono::microseconds{0} );
+    return last_message();
+}
+//=======================================================================================
+bool SmartRPCClient::execute( Envelope *env, std::chrono::microseconds wait_us )
+{
     _connect();
 
     env->setCorrelationID( _correlation );
@@ -27,8 +33,19 @@ const Message & SmartRPCClient::execute( Envelope *env )
 
     _received = false;
     while( !_received )
-        _poller.poll();
+    {
+        _poller.poll( wait_us );
 
+        //  Переходим на новое ожидание только если указано бесконечное ожидание.
+        if ( wait_us.count() == 0 )
+            continue;
+    }
+
+    return _received;
+}
+//=======================================================================================
+const Message &SmartRPCClient::last_message() const
+{
     return _msg;
 }
 //=======================================================================================

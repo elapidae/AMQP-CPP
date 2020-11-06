@@ -14,6 +14,19 @@ public:
     //  Весь поллинг под капотом. Блокируется до получения ответа.
     const Message& execute( Envelope * env );
 
+    //  Поллинг с ожиданием, {0} -- ждать до ответа.
+    bool execute( Envelope * env, std::chrono::microseconds wait_us );
+
+    template<typename Period>
+    bool execute( Envelope * env, Period wait_period )
+    {
+        using namespace std::chrono;
+        return execute( env, duration_cast<microseconds>(wait_period) );
+    }
+
+    //  Если был поллинг с ожиданием, то ответ забирать здесь.
+    const Message& last_message() const;
+
 private:
     SmartSettings _settings;
 
