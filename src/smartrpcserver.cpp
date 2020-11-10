@@ -1,6 +1,6 @@
 #include "amqpcpp.h"
 
-
+#include <iostream>
 #include <functional>
 #include <string>
 
@@ -102,9 +102,15 @@ void SmartRPCServer::connect()
 void SmartRPCServer::_on_amqp_received( const Message& message, uint64_t deliveryTag )
 {
     _something_received = true;
-    (void) redelivered;
 
     auto env = _callback( message );
+
+    if ( !env )
+    {
+        std::cout << "WARNING: Env is empty, AMQP is not ready for such answers..."
+                  << std::endl;
+        return;
+    }
 
     env->setCorrelationID( message.correlationID() );
 
