@@ -1,8 +1,10 @@
 #include "amqpcpp.h"
 
 #include <cassert>
+#include <iostream>
 
 using namespace AMQP;
+using namespace std;
 
 //=======================================================================================
 SmartSubscriber::SmartSubscriber(SmartSettings sett, Subscribe sub)
@@ -40,7 +42,8 @@ void SmartSubscriber::_connect()
     bool binded = false;
     AMQP::QueueCallback callback = [&,this]( const std::string &name, int, int )
     {
-        _channel->bindQueue( _settings.exchange, name, "" );
+        _channel->bindQueue( _settings.exchange, name, _settings.binding_key );
+        cout << "AMQP::SmartSubscriber: binding key: " << _settings.binding_key << endl;
         auto &defer = _channel->consume( name, AMQP::noack);
         defer.onReceived( receiveMessageCallback );
         defer.onSuccess( [&](){binded = true;} );
