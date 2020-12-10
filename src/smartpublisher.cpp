@@ -1,7 +1,9 @@
 #include "amqpcpp.h"
 
 #include <chrono>
+#include <iostream>
 
+using namespace std;
 using namespace AMQP;
 
 //=======================================================================================
@@ -25,6 +27,12 @@ void SmartPublisher::publish( const Envelope& env )
     _channel->publish( _settings.exchange, _settings.binding_key, env );
 }
 //=======================================================================================
+void SmartPublisher::publish( const std::string &msg, const std::string &bind )
+{
+    _connect();
+    _channel->publish( _settings.exchange, bind, msg );
+}
+//=======================================================================================
 void SmartPublisher::_connect()
 {
     if ( _handler.is_connected() )
@@ -39,7 +47,9 @@ void SmartPublisher::_connect()
     _channel.reset( new Channel(_connection.get()) );
 
     bool let_stop = false;
-    auto &defer = _channel->declareExchange( _settings.exchange, fanout );
+    //auto &defer = _channel->declareExchange( _settings.exchange, fanout );
+    auto &defer = _channel->declareExchange( _settings.exchange, topic );
+    cout << "Exchange as TOPIC!" << endl;
     defer.onSuccess( [&let_stop]{ let_stop = true; } );
     defer.onError( [](const char *err){ throw std::runtime_error(err); } );
 

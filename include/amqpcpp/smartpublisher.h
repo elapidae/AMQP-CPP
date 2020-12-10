@@ -14,6 +14,7 @@ public:
 
     void publish( const std::string& msg );
     void publish( const Envelope& env );
+    void publish( const std::string& msg,  const std::string& bind );
 
 private:
     SmartSettings _settings;
