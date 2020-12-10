@@ -55,7 +55,8 @@ void SmartSubscriber::_connect()
         _channel->declareQueue(AMQP::exclusive).onSuccess( callback );
     };
 
-    _channel->declareExchange(_settings.exchange, AMQP::fanout).onSuccess( success );
+    //_channel->declareExchange(_settings.exchange, AMQP::fanout).onSuccess( success );
+    _channel->declareExchange(_settings.exchange, AMQP::topic).onSuccess( success );
 
     while ( !binded )
         _poller.poll();
